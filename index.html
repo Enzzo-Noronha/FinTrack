@@ -11,6 +11,37 @@
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <link rel="manifest" href="manifest.json">
+<!-- 🔥 ADICIONE ISSO DENTRO DO <head> (ANTES DO </style>) -->
+<style>
+/* ANIMAÇÃO DE PÁGINA */
+.page {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.25s ease;
+}
+.page.active {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* FAB */
+.fab {
+  transition: transform .2s, box-shadow .2s;
+}
+.fab:hover {
+  transform: scale(1.1);
+}
+
+/* TRANSAÇÕES */
+.tx-item {
+  transition: all .2s ease;
+}
+.tx-item:active {
+  transform: scale(0.98);
+  background: var(--surface2);
+}
+</style>
 <style>
 :root {
   --bg:#0d0d14; --surface:#16151f; --surface2:#1e1d2a; --border:#2a2938;
@@ -129,6 +160,14 @@ select.fi option{background:var(--surface2);}
 </style>
 </head>
 <body>
+  <!-- 🔥 ADICIONE ISSO LOGO APÓS <body> -->
+<div id="loader" style="
+position:fixed; inset:0;
+background:#0d0d14;
+display:flex; align-items:center; justify-content:center;
+z-index:9999;">
+  <div style="font-size:18px; color:#7c6eea;">FinTrack...</div>
+</div>
 <div id="app">
 
 <div id="pg-home" class="page active">
@@ -633,6 +672,86 @@ if (!txs.length) {
 // ── INIT ─────────────────────────────────────────────────
 curMonth = availableMonths()[0];
 renderHome();
+// =========================
+// 🎯 FEEDBACK DE TOQUE
+// =========================
+document.querySelectorAll('button, .ni, .chip, .mtab').forEach(el => {
+  el.addEventListener('click', () => {
+    el.style.transform = 'scale(0.95)';
+    setTimeout(() => el.style.transform = '', 120);
+
+    if (navigator.vibrate) navigator.vibrate(10);
+  });
+});
+
+// =========================
+// 💰 ANIMAÇÃO DE SALDO
+// =========================
+function animateValue(el, start, end, duration = 500) {
+  let startTime = null;
+
+  function step(timestamp) {
+    if (!startTime) startTime = timestamp;
+    const progress = Math.min((timestamp - startTime) / duration, 1);
+    const value = start + (end - start) * progress;
+    el.textContent = 'R$ ' + value.toLocaleString('pt-BR', {
+      minimumFractionDigits:2
+    });
+
+    if (progress < 1) requestAnimationFrame(step);
+  }
+
+  requestAnimationFrame(step);
+}
+
+// =========================
+// 🔄 SOBRESCREVE renderHome
+// =========================
+const originalRenderHome = renderHome;
+renderHome = function() {
+  originalRenderHome();
+
+  const saldoEl = document.getElementById('saldo');
+  const saldoTexto = saldoEl.textContent.replace(/[^\d,-]/g,'').replace(',','.');
+  const saldo = parseFloat(saldoTexto) || 0;
+
+  animateValue(saldoEl, 0, saldo);
+};
+
+// =========================
+// 📱 SWIPE ENTRE PÁGINAS
+// =========================
+let startX = 0;
+
+document.addEventListener('touchstart', e => {
+  startX = e.touches[0].clientX;
+});
+
+document.addEventListener('touchend', e => {
+  let endX = e.changedTouches[0].clientX;
+  let diff = startX - endX;
+
+  if (Math.abs(diff) > 80) {
+    const pages = ['home','transactions','goals','profile'];
+    let current = document.querySelector('.ni.active').dataset.p;
+    let i = pages.indexOf(current);
+
+    if (diff > 0 && i < pages.length - 1) go(pages[i+1]);
+    if (diff < 0 && i > 0) go(pages[i-1]);
+  }
+});
+
+// =========================
+// ⏳ LOADER
+// =========================
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('loader').style.opacity = '0';
+    setTimeout(() => {
+      document.getElementById('loader').style.display = 'none';
+    }, 300);
+  }, 800);
+});
 </script>
 </body>
 </html>
