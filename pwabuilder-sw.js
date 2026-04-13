@@ -1,5 +1,5 @@
-const CACHE_STATIC = "fintrack-static-v2";
-const CACHE_DYNAMIC = "fintrack-dynamic-v1";
+const CACHE_STATIC = "fintrack-static-v3";
+const CACHE_DYNAMIC = "fintrack-dynamic-v2";
 
 // Arquivos essenciais (app shell)
 const STATIC_ASSETS = [
@@ -11,8 +11,15 @@ const STATIC_ASSETS = [
   "/offline.html"
 ];
 
+const IS_LOCAL = ["localhost", "127.0.0.1"].includes(self.location.hostname);
+
 // 🔹 INSTALAÇÃO (cache inicial)
 self.addEventListener("install", (event) => {
+  if (IS_LOCAL) {
+    self.skipWaiting();
+    return;
+  }
+
   self.skipWaiting(); // ativa imediatamente
 
   event.waitUntil(
@@ -44,6 +51,8 @@ self.addEventListener("activate", (event) => {
 
 // 🔹 FETCH (estratégia inteligente)
 self.addEventListener("fetch", (event) => {
+  if (IS_LOCAL) return;
+
   const req = event.request;
 
   // 🔸 HTML → Network first (sempre atualizado)
